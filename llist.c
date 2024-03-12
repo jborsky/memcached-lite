@@ -28,6 +28,7 @@ bool llist_insert(struct llist *list, const char *key, int nbytes, void *data)
     }
     memcpy(new_node->key, key, nbytes);
 
+    new_node->nbytes = nbytes;
     new_node->data = data;
     new_node->next = list->head;
     list->head = new_node;
