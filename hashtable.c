@@ -23,31 +23,31 @@ static uint32_t hash(struct hash_table *table, const char *key, int key_size)
 
 bool hash_table_insert(struct hash_table *table, const char *key, int key_size, void *data)
 {
-    struct llist *bucket = table->table[hash(table, key, key_size) & table->mask];
+    struct llist *bucket = &table->table[hash(table, key, key_size) & table->mask];
 
     return llist_insert(bucket, key, key_size, data);
 }
 
 struct node *hash_table_search(struct hash_table *table, const char *key, int key_size)
 {
-    struct llist *bucket = table->table[hash(table, key, key_size) & table->mask];
+    struct llist *bucket = &table->table[hash(table, key, key_size) & table->mask];
 
     return llist_search(bucket, key, key_size);
 }
 
-bool hash_table_delete(struct hash_table *table, const char *key, int key_size, void *data)
+bool hash_table_delete(struct hash_table *table, const char *key, int key_size)
 {
-    struct llist *bucket = table->table[hash(table, key, key_size) & table->mask];
+    struct llist *bucket = &table->table[hash(table, key, key_size) & table->mask];
 
     return llist_delete(bucket, key, key_size);
 }
 
 void hash_table_destroy(struct hash_table *table)
 {
-    for (uint32_t i = 0; i < table->mask; ++i) {
-        if (table->table[i] != NULL)
-            llist_destroy(table->table[i]);
+    for (uint32_t i = 0; i <= table->mask; ++i) {
+        if (table->table[i].head != NULL)
+            llist_destroy(&table->table[i]);
     }
 
-    free(table);
+    free(table->table);
 }
