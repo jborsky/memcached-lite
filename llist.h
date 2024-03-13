@@ -19,7 +19,7 @@ struct llist
 struct llist *llist_init(void);
 bool llist_insert(struct llist *list, const char *key, int nbytes, void *data);
 struct node *llist_search(struct llist *list, const char *key, int nbytes);
-struct node *llist_delete(struct llist *list, const char *key, int nbytes);
+bool llist_delete(struct llist *list, const char *key, int nbytes);
 void llist_destroy(struct llist *list);
 
 

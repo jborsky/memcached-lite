@@ -46,7 +46,14 @@ struct node *llist_search(struct llist *list, const char *key, int nbytes)
     return NULL;
 }
 
-struct node *llist_delete(struct llist *list, const char *key, int nbytes)
+static void node_destroy(struct node *node)
+{
+    free(node->key);
+    free(node);
+}
+
+
+bool llist_delete(struct llist *list, const char *key, int nbytes)
 {
     struct node **node;
     for (node = &list->head; *node != NULL; node = &(*node)->next) {
@@ -55,21 +62,25 @@ struct node *llist_delete(struct llist *list, const char *key, int nbytes)
     }
 
     if (*node == NULL)
-        return NULL;
+        return false;
 
-    struct node *deleted_node = *node;
-
+    struct node *tmp = *node;
     *node = (*node)->next;
 
-    return deleted_node;
+    node_destroy(tmp);
+
+    return true;
 }
+
 
 void llist_destroy(struct llist *list)
 {
+    if (list == NULL)
+        return;
+
     for (struct node *node = list->head; node != NULL;) {
         struct node *next_node = node->next;
-        free(node->key);
-        free(node);
+        node_destroy(node);
         node = next_node;
     }
 
