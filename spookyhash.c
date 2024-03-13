@@ -23,7 +23,7 @@
 //   July 30 2012: I reintroduced the buffer overflow
 //   August 5 2012: SpookyV2: d = should be d += in short hash, and remove extra mix from long hash
 
-#include "spooky.h"
+#include "spookyhash.h"
 
 #include <memory.h>
 #include <stdbool.h>
