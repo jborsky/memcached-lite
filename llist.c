@@ -4,15 +4,9 @@
 #include <string.h>
 
 
-struct llist *llist_init(void)
+void llist_init(struct llist *list)
 {
-    struct llist *new_list = malloc(sizeof(*new_list));
-    if (new_list == NULL)
-        return NULL;
-
-    new_list->head = NULL;
-
-    return new_list;
+    list->head = NULL;
 }
 
 bool llist_insert(struct llist *list, const char *key, int nbytes, void *data)
@@ -75,14 +69,9 @@ bool llist_delete(struct llist *list, const char *key, int nbytes)
 
 void llist_destroy(struct llist *list)
 {
-    if (list == NULL)
-        return;
-
     for (struct node *node = list->head; node != NULL;) {
         struct node *next_node = node->next;
         node_destroy(node);
         node = next_node;
     }
-
-    free(list);
 }

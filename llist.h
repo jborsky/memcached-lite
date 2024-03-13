@@ -16,7 +16,7 @@ struct llist
     struct node *head;
 };
 
-struct llist *llist_init(void);
+void llist_init(struct llist *list);
 bool llist_insert(struct llist *list, const char *key, int nbytes, void *data);
 struct node *llist_search(struct llist *list, const char *key, int nbytes);
 bool llist_delete(struct llist *list, const char *key, int nbytes);
