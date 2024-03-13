@@ -294,36 +294,50 @@ spooky_short(const void *restrict message, size_t length,
 
     // Handle the last 0..15 bytes, and its length
     h[3] += ((uint64_t) length) << 56;
+
     switch (left) {
         case 15:
             h[3] += ((uint64_t) u.p8[14]) << 48;
+            __attribute__((fallthrough));
         case 14:
             h[3] += ((uint64_t) u.p8[13]) << 40;
+            __attribute__((fallthrough));
         case 13:
             h[3] += ((uint64_t) u.p8[12]) << 32;
+            __attribute__((fallthrough));
         case 12:
             h[3] += ((uint64_t) u.p8[11]) << 24;
+            __attribute__((fallthrough));
         case 11:
             h[3] += ((uint64_t) u.p8[10]) << 16;
+            __attribute__((fallthrough));
         case 10:
             h[3] += ((uint64_t) u.p8[9]) << 8;
+            __attribute__((fallthrough));
         case 9:
             h[3] += (uint64_t) u.p8[8];
+            __attribute__((fallthrough));
         case 8:
             h[2] += spooky_read_le64(&u.p64[0]);
             break;
         case 7:
             h[2] += ((uint64_t) u.p8[6]) << 48;
+            __attribute__((fallthrough));
         case 6:
             h[2] += ((uint64_t) u.p8[5]) << 40;
+            __attribute__((fallthrough));
         case 5:
             h[2] += ((uint64_t) u.p8[4]) << 32;
+            __attribute__((fallthrough));
         case 4:
             h[2] += ((uint64_t) u.p8[3]) << 24;
+            __attribute__((fallthrough));
         case 3:
             h[2] += ((uint64_t) u.p8[2]) << 16;
+            __attribute__((fallthrough));
         case 2:
             h[2] += ((uint64_t) u.p8[1]) << 8;
+            __attribute__((fallthrough));
         case 1:
             h[2] += (uint64_t) u.p8[0];
             break;
