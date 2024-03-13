@@ -1,2 +1,11 @@
 # CLion project settings
 .idea/
+
+#cmake
+cmake-build-debug/
+CMakeLists.txt
+
+#binary
+*.out
+
+.DS_STore
