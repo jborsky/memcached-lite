@@ -1,15 +1,6 @@
 #include "hashtable.h"
 #include "llist.h"
 #include <stdlib.h>
-#include <stdbool.h>
-
-struct hash_table
-{
-    struct llist **table;
-    hash_function hash_func;
-    uint32_t mask;
-    uint32_t seed;
-};
 
 bool hash_table_init(struct hash_table *table, int size, hash_function func, uint32_t seed)
 {
