@@ -74,7 +74,12 @@ bool hash_table_delete(struct hash_table *table, const char *key, int key_size)
 {
     struct llist *bucket = &table->table[hash(table, key, key_size) & table->mask];
 
-    return llist_delete(bucket, key_size, key);
+    if (!llist_delete(bucket, key_size, key))
+        return false;
+
+    table->count--;
+
+    return true;
 }
 
 
