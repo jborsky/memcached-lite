@@ -9,7 +9,7 @@ void llist_init(struct llist *list)
     list->head = NULL;
 }
 
-bool llist_insert(struct llist *list, const char *key, int nbytes, void *data)
+bool llist_insert(struct llist *list, int nbytes, const char key[nbytes], void *data)
 {
     struct node *new_node = malloc(sizeof(*new_node));
     if (new_node == NULL)
@@ -30,7 +30,7 @@ bool llist_insert(struct llist *list, const char *key, int nbytes, void *data)
     return true;
 }
 
-struct node *llist_search(struct llist *list, const char *key, int nbytes)
+struct node *llist_search(struct llist *list, int nbytes, const char key[nbytes])
 {
     for (struct node *node = list->head; node != NULL; node = node->next) {
         if ((nbytes == node->nbytes) && memcmp(node->key, key, nbytes) == 0)
@@ -47,7 +47,7 @@ static void node_destroy(struct node *node)
 }
 
 
-bool llist_delete(struct llist *list, const char *key, int nbytes)
+bool llist_delete(struct llist *list, int nbytes, const char *key)
 {
     struct node **node;
     for (node = &list->head; *node != NULL; node = &(*node)->next) {
