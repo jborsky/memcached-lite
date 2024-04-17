@@ -30,11 +30,18 @@ bool hash_table_insert(struct hash_table *table, const char *key, int key_size, 
     if (!llist_insert(bucket, key_size, key, data))
         return false;
 
-    if ((double) ++table->count / (1 << table->size) >= 0.75)
+    if (++table->count >= 0.75 * (1 << table->size))
         if (!hash_table_resize(table, table->size + 1))
             return false;
 
     return true;
+}
+
+static void hash_table_move_node(struct hash_table *table, struct node *node)
+{
+    struct llist *bucket = &table->table[hash(table, node->key, node->nbytes) & table->mask];
+
+    llist_move(bucket, node);
 }
 
 struct node *hash_table_search(struct hash_table *table, const char *key, int key_size)
@@ -57,10 +64,10 @@ bool hash_table_resize(struct hash_table *table, uint8_t new_size)
 
     for (uint32_t i = 0; i <= old_table.mask; ++i) {
         struct node *head = old_table.table[i].head;
-        for (struct node *node = head; node != NULL; node = node->next) {
-            if (!hash_table_insert(table, node->key, node->nbytes, node->data))
-                goto err;
-        }
+        for (struct node *node = head; node != NULL; node = node->next)
+            hash_table_move_node(table, node);
+
+        old_table.table[i].head = NULL;
     }
 
     rv = true;

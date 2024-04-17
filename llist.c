@@ -30,6 +30,12 @@ bool llist_insert(struct llist *list, int nbytes, const char key[nbytes], void *
     return true;
 }
 
+void llist_move(struct llist *list, struct node *node)
+{
+    node->next = list->head;
+    list->head = node;
+}
+
 struct node *llist_search(struct llist *list, int nbytes, const char key[nbytes])
 {
     for (struct node *node = list->head; node != NULL; node = node->next) {
