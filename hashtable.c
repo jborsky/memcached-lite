@@ -64,8 +64,12 @@ bool hash_table_resize(struct hash_table *table, uint8_t new_size)
 
     for (uint32_t i = 0; i <= old_table.mask; ++i) {
         struct node *head = old_table.table[i].head;
-        for (struct node *node = head; node != NULL; node = node->next)
+        for (struct node *node = head; node != NULL;) {
+            struct node *next = node->next;
             hash_table_move_node(table, node);
+
+            node = next;
+        }
 
         old_table.table[i].head = NULL;
     }
