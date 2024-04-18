@@ -8,28 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-
-struct buffer
-{
-    char *buff;
-    int size;
-    int count;
-};
-
-struct client
-{
-    int fd;
-    struct buffer in;
-    struct buffer out;
-};
-
-struct server
-{
-    int fd;
-    struct pollfd *pfds;
-    struct client *clients;
-    int size;
-};
+#include "server.h"
+#include "request.h"
 
 int bind_and_listen(const char *ip, int port)
 {
@@ -106,7 +86,7 @@ void destroy_server(struct server *server)
     free(server->pfds);
 }
 
-int buffer_append(struct buffer *buff, const char *data, int nbytes)
+int buffer_append(struct buffer *buff, const char *data, size_t nbytes)
 {
     if (nbytes >= buff->size - buff->count) {
         if (buff->buff == NULL)
@@ -126,7 +106,7 @@ int buffer_append(struct buffer *buff, const char *data, int nbytes)
     return 0;
 }
 
-void clear_buffer(struct buffer *buff)
+void buffer_clear(struct buffer *buff)
 {
     free(buff->buff);
     buff->buff = NULL;
@@ -158,7 +138,7 @@ int accept_client(struct server *server)
     server->clients[index].fd = client_fd;
     server->pfds[index].events = POLLIN | POLLOUT;
 
-    const char *welcome = "Connected\n\r";
+    const char *welcome = "Connected\r\n";
     buffer_append(&server->clients[index].out, welcome, strlen(welcome));
 
     return 0;
@@ -172,8 +152,11 @@ void remove_client(struct server *server, int index)
 
     struct client *client = &server->clients[index];
     client->fd = -1;
-    clear_buffer(&client->in);
-    clear_buffer(&client->out);
+    buffer_clear(&client->in);
+    buffer_clear(&client->out);
+    buffer_clear(&client->out_data);
+    free_request(client->req);
+    client->req = NULL;
 }
 
 int read_message(struct client *client) {
@@ -188,7 +171,30 @@ int read_message(struct client *client) {
     if (buffer_append(&client->in, &buffer, bytes_read) == -1)
         return -1;
 
-    // parse_message
+    if (handle_client(client) == -1)
+        return -1;
+
+    return 0;
+}
+
+int send_data(struct client *client)
+{
+    if (client->out_data.buff == NULL)
+        return 0;
+
+    struct buffer *buff = &client->out_data;
+
+    ssize_t bytes_written = write(client->fd, buff->buff + buff->count, buff->size - buff->count);
+    if (bytes_written == -1) {
+        if (errno == EPIPE)
+            return -2;
+        return -1;
+    }
+
+    buff->count += bytes_written;
+
+    if (buff->count == buff->size)
+        buff->buff = NULL;
 
     return 0;
 }
@@ -196,9 +202,9 @@ int read_message(struct client *client) {
 int send_message(struct client *client)
 {
     if (client->out.count == 0)
-        return 0;
+        return send_data(client);
 
-    int bytes_written = write(client->fd, client->out.buff, client->out.count);
+    ssize_t bytes_written = write(client->fd, client->out.buff, client->out.count);
     if (bytes_written == -1) {
         if (errno == EPIPE)
             return -2;
