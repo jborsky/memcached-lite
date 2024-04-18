@@ -49,6 +49,7 @@ struct node *llist_search(struct llist *list, int nbytes, const char key[nbytes]
 static void node_destroy(struct node *node)
 {
     free(node->key);
+    free(node->data);
     free(node);
 }
 
