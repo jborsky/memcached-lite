@@ -9,20 +9,21 @@ void llist_init(struct llist *list)
     list->head = NULL;
 }
 
-bool llist_insert(struct llist *list, int nbytes, const char key[nbytes], void *data)
+bool llist_insert(struct llist *list, int key_size, const char *key, size_t data_size, void *data)
 {
     struct node *new_node = malloc(sizeof(*new_node));
     if (new_node == NULL)
         return false;
 
-    new_node->key = malloc(nbytes);
+    new_node->key = malloc(key_size);
     if (new_node->key == NULL) {
         free(new_node);
         return false;
     }
-    memcpy(new_node->key, key, nbytes);
+    memcpy(new_node->key, key, key_size);
 
-    new_node->nbytes = nbytes;
+    new_node->key_size = key_size;
+    new_node->data_size = data_size;
     new_node->data = data;
     new_node->next = list->head;
     list->head = new_node;
@@ -36,10 +37,10 @@ void llist_move(struct llist *list, struct node *node)
     list->head = node;
 }
 
-struct node *llist_search(struct llist *list, int nbytes, const char key[nbytes])
+struct node *llist_search(struct llist *list, int key_size, const char *key)
 {
     for (struct node *node = list->head; node != NULL; node = node->next) {
-        if ((nbytes == node->nbytes) && memcmp(node->key, key, nbytes) == 0)
+        if ((key_size == node->key_size) && memcmp(node->key, key, key_size) == 0)
             return node;
     }
 
@@ -58,7 +59,7 @@ bool llist_delete(struct llist *list, int nbytes, const char *key)
 {
     struct node **node;
     for (node = &list->head; *node != NULL; node = &(*node)->next) {
-        if ((nbytes == (*node)->nbytes) && memcmp((*node)->key, key, nbytes) == 0)
+        if ((nbytes == (*node)->key_size) && memcmp((*node)->key, key, nbytes) == 0)
             break;
     }
 
