@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "llist.h"
 
 struct hash_table
 {
@@ -15,7 +16,7 @@ struct hash_table
 
 bool hash_table_init(struct hash_table *table, uint8_t size, uint32_t seed);
 
-bool hash_table_insert(struct hash_table *table, const char *key, int key_size, void *data);
+bool hash_table_insert(struct hash_table *table, const char *key, int key_size, void *data, size_t data_size);
 
 struct node *hash_table_search(struct hash_table *table, const char *key, int key_size);
 

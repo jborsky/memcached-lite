@@ -1,5 +1,4 @@
 #include "hashtable.h"
-#include "llist.h"
 #include "spookyhash.h"
 #include <stdlib.h>
 
@@ -23,11 +22,11 @@ static uint32_t hash(struct hash_table *table, const char *key, int key_size)
     return spooky_hash32(key, key_size, table->seed);
 }
 
-bool hash_table_insert(struct hash_table *table, const char *key, int key_size, void *data)
+bool hash_table_insert(struct hash_table *table, const char *key, int key_size, void *data, size_t data_size)
 {
     struct llist *bucket = &table->table[hash(table, key, key_size) & table->mask];
 
-    if (!llist_insert(bucket, key_size, key, data))
+    if (!llist_insert(bucket, key_size, key, data_size, data))
         return false;
 
     if (++table->count >= 0.75 * (1 << table->size))
@@ -39,7 +38,7 @@ bool hash_table_insert(struct hash_table *table, const char *key, int key_size, 
 
 static void hash_table_move_node(struct hash_table *table, struct node *node)
 {
-    struct llist *bucket = &table->table[hash(table, node->key, node->nbytes) & table->mask];
+    struct llist *bucket = &table->table[hash(table, node->key, node->key_size) & table->mask];
 
     llist_move(bucket, node);
 }
