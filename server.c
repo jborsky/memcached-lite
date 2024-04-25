@@ -1,4 +1,3 @@
-#include <stdbool.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -8,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 #include "server.h"
 #include "request.h"
 
@@ -41,7 +41,6 @@ int init_server(struct server *server, int fd, int count)
     server->clients = calloc(count, sizeof(*server->clients));
     if (server->clients == NULL)
         return -1;
-
 
     server->pfds = malloc(count * sizeof(*server->pfds));
     if (server->pfds == NULL) {
@@ -117,6 +116,8 @@ void buffer_clear(struct buffer *buff)
 int accept_client(struct server *server)
 {
     int client_fd = accept(server->fd, NULL, NULL);
+    fcntl(client_fd, O_NONBLOCK);
+
     if (client_fd == -1)
         return -1;
 
