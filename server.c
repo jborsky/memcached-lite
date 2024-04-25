@@ -113,41 +113,13 @@ void buffer_clear(struct buffer *buff)
     buff->count = 0;
 }
 
-int accept_client(struct server *server)
-{
-    int client_fd = accept(server->fd, NULL, NULL);
-    fcntl(client_fd, O_NONBLOCK);
-
-    if (client_fd == -1)
-        return -1;
-
-    int index = -1;
-    for (int i = 0; i < server->size; ++i) {
-        if (server->pfds[i].fd == -1) {
-            index = i;
-            break;
-        }
-    }
-
-    if (index == -1) {
-        index = server->size;
-        if (increase_capacity(server) == -1)
-            return -1;
-    }
-
-    server->pfds[index].fd = client_fd;
-    server->clients[index].fd = client_fd;
-    server->pfds[index].events = POLLIN | POLLOUT;
-
-    const char *welcome = "Connected\r\n";
-    buffer_append(&server->clients[index].out, welcome, strlen(welcome));
-
-    return 0;
-}
-
 void remove_client(struct server *server, int index)
 {
-    close(server->pfds[index].fd);
+    if (index >= server->size || index < 0)
+        return;
+
+    if (server->pfds[index].fd != -1)
+        close(server->pfds[index].fd);
 
     server->pfds[index].fd = -1;
 
@@ -160,14 +132,48 @@ void remove_client(struct server *server, int index)
     client->req = NULL;
 }
 
+void accept_client(struct server *server)
+{
+    int client_fd = accept(server->fd, NULL, NULL);
+    if (client_fd == -1)
+        return;
+
+    fcntl(client_fd, O_NONBLOCK);
+
+    int index = -1;
+    for (int i = 0; i < server->size; ++i) {
+        if (server->pfds[i].fd == -1) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index == -1) {
+        index = server->size;
+        if (increase_capacity(server) == -1)
+            goto error;
+    }
+
+    server->pfds[index].fd = client_fd;
+    server->clients[index].fd = client_fd;
+    server->pfds[index].events = POLLIN | POLLOUT;
+
+    const char *welcome = "Connected\r\n";
+    if (buffer_append(&server->clients[index].out, welcome, strlen(welcome) == -1))
+        goto error;
+
+    return;
+
+error:
+    remove_client(server, index);
+}
+
 int read_message(struct client *client) {
     char buffer[512];
 
     int bytes_read = read(client->fd, buffer, 512);
-    if (bytes_read == -1)
+    if (bytes_read <= 0)
         return -1;
-    if (bytes_read == 0)
-        return -2;
 
     if (buffer_append(&client->in, &buffer, bytes_read) == -1)
         return -1;
@@ -186,11 +192,8 @@ int send_data(struct client *client)
     struct buffer *buff = &client->out_data;
 
     ssize_t bytes_written = write(client->fd, buff->buff + buff->count, buff->size - buff->count);
-    if (bytes_written == -1) {
-        if (errno == EPIPE)
-            return -2;
+    if (bytes_written == -1)
         return -1;
-    }
 
     buff->count += bytes_written;
 
@@ -206,11 +209,8 @@ int send_message(struct client *client)
         return send_data(client);
 
     ssize_t bytes_written = write(client->fd, client->out.buff, client->out.count);
-    if (bytes_written == -1) {
-        if (errno == EPIPE)
-            return -2;
+    if (bytes_written == -1)
         return -1;
-    }
 
     client->out.count -= bytes_written;
     memmove(client->out.buff, client->out.buff + bytes_written, client->out.count);
@@ -226,38 +226,28 @@ int memcached_server(int sock_fd)
 
     while (1) {
         if (poll(server.pfds, server.size, 0) == -1)
-            goto error;
+            continue;
 
         for (int i = 0; i < server.size; ++i) {
             if (server.pfds[i].revents & (POLLIN | POLLHUP)) {
                 if (server.pfds[i].fd != server.fd) {
                     int ret = read_message(&server.clients[i]);
                     if (ret == -1)
-                        goto error;
-                    if (ret == -2)
                         remove_client(&server, i);
                 }
 
                 else {
-                    if (accept_client(&server) == -1)
-                        goto error;
+                    accept_client(&server);
                 }
             }
 
             if (server.pfds[i].revents & POLLOUT) {
                 int ret = send_message(&server.clients[i]);
                 if (ret == -1)
-                    goto error;
-                if (ret == -2) {
                     remove_client(&server, i);
-                }
             }
         }
     }
-
-error:
-    destroy_server(&server);
-    return -1;
 }
 
 
