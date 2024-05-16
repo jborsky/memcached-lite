@@ -26,6 +26,7 @@ bool llist_insert(struct llist *list, int key_size, const char *key, size_t data
     new_node->data_size = data_size;
     new_node->data = data;
     new_node->next = list->head;
+    new_node->ref_count = 0;
     list->head = new_node;
 
     return true;
@@ -72,6 +73,23 @@ bool llist_delete(struct llist *list, int nbytes, const char *key)
     node_destroy(tmp);
 
     return true;
+}
+
+struct node* llist_pop(struct llist *list, int nbytes, const char *key)
+{
+    struct node **node;
+    for (node = &list->head; *node != NULL; node = &(*node)->next) {
+        if ((nbytes == (*node)->key_size) && memcmp((*node)->key, key, nbytes) == 0)
+            break;
+    }
+
+    if (*node == NULL)
+        return NULL;
+
+    struct node *tmp = *node;
+    *node = (*node)->next;
+
+    return tmp;
 }
 
 

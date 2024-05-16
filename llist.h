@@ -10,6 +10,7 @@ struct node
     void *data;
     size_t data_size;
     struct node *next;
+    int ref_count;
 };
 
 struct llist
