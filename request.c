@@ -18,7 +18,7 @@ static int parse_request_type(struct request *req, char *request)
     if (strcmp(request, "erase") == 0)
         req->req = REQ_ERASE;
 
-    return req->req == UNDEFINED ? -2 : 0;
+    return req->req == UNDEFINED ? -1 : 0;
 }
 
 static int parse_key(struct request *req, char *key)
@@ -39,7 +39,7 @@ static int parse_data_length(struct request *req, char *length)
     errno = 0;
     req->data_size = strtoul(length, &end, 10);
     if (*end != '\0' || errno == ERANGE)
-        return -2;
+        return -1;
 
     return 0;
 }
@@ -58,25 +58,27 @@ static char *token(char *line, int ch, int size)
 int parse_request(struct request *req, char *start, int size)
 {
     char *whitespace = token(start, ' ', size);
-    if (whitespace == NULL || parse_request_type(req, start) == -2)
-        return -2;
-
-    size -= whitespace - start;
-    start = whitespace + 1;
-    whitespace = token(start, ' ', size);
-
-    if (whitespace == NULL)
-        return -2;
-
-    if (parse_key(req, start) == -1)
+    if (whitespace == NULL || parse_request_type(req, start) == -1)
         return -1;
 
     size -= whitespace - start;
     start = whitespace + 1;
-    token(start, '\r', size);
+    whitespace = token(start, ' ', size);
+    if (whitespace == NULL) {
+        whitespace = token(start, '\n', size);
+        if (whitespace == NULL)
+            return -1;
+    }
 
-    if (req->req == REQ_STORE && parse_data_length(req, start) == -2)
-        return -2;
+    if (parse_key(req, start) == -1)
+        return -1;
+
+    if (req->req == REQ_STORE) {
+        size -= whitespace - start;
+        start = whitespace + 1;
+        token(start, '\n', size);
+        return parse_data_length(req, start);
+    }
 
     return 0;
 }
@@ -86,14 +88,14 @@ static int store_request(struct client *client)
     struct request *req = client->req;
 
     if (hash_table_search(&memcached.table, req->key, req->key_size) != NULL)
-        return response_to_client(client, "Duplicate key\r\n");
+        return response_to_client(client, "Duplicate key\n");
 
     if (!hash_table_insert(&memcached.table, req->key, req->key_size, req->data, req->data_size))
         return -1;
 
     req->data = NULL;
 
-    if (response_to_client(client, "Stored\r\n") == -1)
+    if (response_to_client(client, "Stored\n") == -1)
         return -1;
 
     return 0;
@@ -105,13 +107,13 @@ static int load_request(struct client *client)
 
     struct node *node = hash_table_search(&memcached.table, req->key, req->key_size);
     if (node == NULL)
-        return response_to_client(client, "Key not found\r\n");
+        return response_to_client(client, "Key not found\n");
 
     if (response_to_client(client, "Found ") == -1)
         return -1;
 
     char size[32];
-    sprintf(size, "%zu\r\n", node->data_size);
+    sprintf(size, "%zu\n", node->data_size);
     if (response_to_client(client, size) == -1)
         return -1;
 
@@ -126,10 +128,10 @@ static int erase_request(struct client *client)
 {
     struct request *req = client->req;
 
-    if (hash_table_delete(&memcached.table, req->key, req->key_size) == -1)
-        return response_to_client(client, "Key not found\r\n");
+    if (!hash_table_delete(&memcached.table, req->key, req->key_size))
+        return response_to_client(client, "Key not found\n");
 
-    return response_to_client(client, "Erased\r\n");
+    return response_to_client(client, "Erased\n");
 }
 
 int handle_request(struct client *client)
@@ -146,6 +148,7 @@ int handle_request(struct client *client)
         case REQ_ERASE:
             if (erase_request(client) == -1)
                 return -1;
+            break;
         default:
             return -1;
     }
@@ -154,4 +157,18 @@ int handle_request(struct client *client)
     client->req = NULL;
 
     return 0;
+}
+
+void free_request(struct request *req)
+{
+    free(req->key);
+    free(req->data);
+    free(req);
+}
+
+void clear_request(struct request *req)
+{
+    free(req->key);
+    free(req->data);
+    memset(req, 0, sizeof(*req));
 }

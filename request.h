@@ -1,6 +1,6 @@
 #ifndef REQUEST_H
 #define REQUEST_H
-#include "server.h"
+#include "client_handler.h"
 #include <stdlib.h>
 
 enum req_type {
@@ -15,7 +15,7 @@ struct request
     char *key;
     int key_size;
     size_t data_size;
-    void *data;
+    char *data;
     size_t data_rec;
 };
 
