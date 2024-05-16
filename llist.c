@@ -48,7 +48,7 @@ struct node *llist_search(struct llist *list, int key_size, const char *key)
     return NULL;
 }
 
-static void node_destroy(struct node *node)
+void node_destroy(struct node *node)
 {
     free(node->key);
     free(node->data);
