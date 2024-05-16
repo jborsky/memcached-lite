@@ -22,6 +22,8 @@ struct node *hash_table_search(struct hash_table *table, const char *key, int ke
 
 bool hash_table_resize(struct hash_table *table, uint8_t new_size);
 
+struct node* hash_table_pop(struct hash_table *table, const char *key, int key_size);
+
 bool hash_table_delete(struct hash_table *table, const char *key, int key_size);
 
 void hash_table_destroy(struct hash_table *table);

@@ -92,6 +92,20 @@ bool hash_table_delete(struct hash_table *table, const char *key, int key_size)
     return true;
 }
 
+struct node* hash_table_pop(struct hash_table *table, const char *key, int key_size)
+{
+    struct llist *bucket = &table->table[hash(table, key, key_size) & table->mask];
+
+    struct node *node = llist_pop(bucket, key_size, key);
+
+    if (node == NULL)
+        return NULL;
+
+    table->count--;
+
+    return node;
+}
+
 
 void hash_table_destroy(struct hash_table *table)
 {
