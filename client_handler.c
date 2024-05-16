@@ -134,19 +134,20 @@ static int read_request_data(struct client *client)
 
 static int send_data(struct client *client)
 {
-    if (client->out_data.buff == NULL)
+    if (client->out_node == NULL)
         return 0;
 
-    struct buffer *buff = &client->out_data;
+    struct node *node = client->out_node;
 
-    ssize_t bytes_written = write(client->fd, buff->buff + buff->count, buff->size - buff->count);
+    ssize_t bytes_written = write(client->fd,  node->data + client->out_data_count,
+                                  node->data_size - client->out_data_count);
     if (bytes_written == -1)
         return -1;
 
-    buff->count += bytes_written;
+    client->out_data_count += bytes_written;
 
-    if (buff->count == buff->size)
-        buff->buff = NULL;
+    if (client->out_data_count == node->data_size)
+        client->out_node = NULL;
 
     return 0;
 }
@@ -201,6 +202,10 @@ void free_client(struct client *client)
     buffer_clear(&client->out);
     free_request(client->req);
     client->req = NULL;
+    if (client->out_node) {
+        client->out_node->ref_count--;
+        client->out_node = NULL;
+    }
 }
 
 

@@ -1,6 +1,7 @@
 #ifndef CLIENT_HANDLER_H
 #define CLIENT_HANDLER_H
 #include <stdlib.h>
+#include "llist.h"
 
 struct buffer
 {
@@ -12,10 +13,12 @@ struct buffer
 struct client
 {
     int fd;
+    struct request *req;
     struct buffer in;
     struct buffer out;
-    struct buffer out_data;
-    struct request *req;
+
+    struct node *out_node;
+    size_t out_data_count;
 };
 
 int handle_client_in(struct client *client);
