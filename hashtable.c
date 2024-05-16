@@ -13,7 +13,7 @@ bool hash_table_init(struct hash_table *table, uint8_t size, uint32_t seed)
     table->count = 0;
     table->size = size;
     table->seed = seed;
-    llist_init(&table->node_garbage)
+    llist_init(&table->node_garbage);
 
     return true;
 }
