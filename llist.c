@@ -75,7 +75,7 @@ bool llist_delete(struct llist *list, int nbytes, const char *key)
     return true;
 }
 
-struct node* llist_pop(struct llist *list, int nbytes, const char *key)
+struct node *llist_pop(struct llist *list, int nbytes, const char *key)
 {
     struct node **node;
     for (node = &list->head; *node != NULL; node = &(*node)->next) {
@@ -91,7 +91,6 @@ struct node* llist_pop(struct llist *list, int nbytes, const char *key)
 
     return tmp;
 }
-
 
 void llist_destroy(struct llist *list)
 {
