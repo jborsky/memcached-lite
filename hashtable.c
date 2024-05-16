@@ -13,6 +13,7 @@ bool hash_table_init(struct hash_table *table, uint8_t size, uint32_t seed)
     table->count = 0;
     table->size = size;
     table->seed = seed;
+    llist_init(&table->node_garbage)
 
     return true;
 }
@@ -20,6 +21,17 @@ bool hash_table_init(struct hash_table *table, uint8_t size, uint32_t seed)
 static uint32_t hash(struct hash_table *table, const char *key, int key_size)
 {
     return spooky_hash32(key, key_size, table->seed);
+}
+
+static void hash_table_cleanup(struct hash_table *table)
+{
+    table->to_cleanup--;
+
+    if (table->to_cleanup == 0) {
+        llist_cleanup(&table->node_garbage);
+        table->to_cleanup = 10;
+    }
+
 }
 
 bool hash_table_insert(struct hash_table *table, const char *key, int key_size, void *data, size_t data_size)
@@ -32,6 +44,8 @@ bool hash_table_insert(struct hash_table *table, const char *key, int key_size, 
     if (++table->count >= 0.75 * (1 << table->size))
         if (!hash_table_resize(table, table->size + 1))
             return false;
+
+    hash_table_cleanup(table);
 
     return true;
 }
@@ -46,6 +60,8 @@ static void hash_table_move_node(struct hash_table *table, struct node *node)
 struct node *hash_table_search(struct hash_table *table, const char *key, int key_size)
 {
     struct llist *bucket = &table->table[hash(table, key, key_size) & table->mask];
+
+    hash_table_cleanup(table);
 
     return llist_search(bucket, key_size, key);
 }
@@ -84,26 +100,20 @@ bool hash_table_delete(struct hash_table *table, const char *key, int key_size)
 {
     struct llist *bucket = &table->table[hash(table, key, key_size) & table->mask];
 
-    if (!llist_delete(bucket, key_size, key))
+    struct node *node = llist_pop(bucket, key_size, key);
+    if (node == NULL)
         return false;
 
+    if (node->ref_count == 0)
+        node_destroy(node);
+    else
+        llist_move(&table->node_garbage, node);
+
     table->count--;
+
+    hash_table_cleanup(table);
 
     return true;
-}
-
-struct node* hash_table_pop(struct hash_table *table, const char *key, int key_size)
-{
-    struct llist *bucket = &table->table[hash(table, key, key_size) & table->mask];
-
-    struct node *node = llist_pop(bucket, key_size, key);
-
-    if (node == NULL)
-        return NULL;
-
-    table->count--;
-
-    return node;
 }
 
 
@@ -116,3 +126,4 @@ void hash_table_destroy(struct hash_table *table)
 
     free(table->table);
 }
+

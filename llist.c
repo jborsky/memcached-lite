@@ -55,7 +55,6 @@ void node_destroy(struct node *node)
     free(node);
 }
 
-
 bool llist_delete(struct llist *list, int nbytes, const char *key)
 {
     struct node **node;
@@ -90,6 +89,21 @@ struct node *llist_pop(struct llist *list, int nbytes, const char *key)
     *node = (*node)->next;
 
     return tmp;
+}
+
+void llist_cleanup(struct llist *list)
+{
+    struct node **node;
+    for (node = &list->head; *node != NULL; node = &(*node)->next) {
+        if ((*node)->ref_count != 0)
+            continue;
+
+        struct node *tmp = *node;
+        *node = (*node)->next;
+
+        node_destroy(tmp);
+
+    }
 }
 
 void llist_destroy(struct llist *list)

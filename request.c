@@ -126,16 +126,10 @@ static int erase_request(struct client *client)
 {
     struct request *req = client->req;
 
-    struct node *node = hash_table_pop(&memcached.table, req->key, req->key_size);
-    if (node == NULL)
+    if (hash_table_delete(&memcached.table, req->key, req->key_size) == -1)
         return response_to_client(client, "Key not found\r\n");
 
-    if (node->ref_count == 0)
-        node_destroy(node);
-    else
-        llist_move(memcached.node_garbage, node);
-
-    return 0;
+    return response_to_client(client, "Erased\r\n");
 }
 
 int handle_request(struct client *client)

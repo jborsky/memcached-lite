@@ -25,6 +25,7 @@ struct node *llist_search(struct llist *list, int key_size, const char *key);
 struct node *llist_pop(struct llist *list, int nbytes, const char *key);
 bool llist_delete(struct llist *list, int key_size, const char *key);
 void node_destroy(struct node *node);
+void llist_cleanup(struct llist *list);
 void llist_destroy(struct llist *list);
 
 
