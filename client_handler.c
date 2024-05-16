@@ -35,7 +35,7 @@ static int buffer_append(struct buffer *buff, const char *data, size_t data_size
 
 static int buffer_read(int fd, struct buffer *buff)
 {
-    if (512 >= buff->size - buff->count)
+    if (512 > buff->size - buff->count)
         if (buffer_realloc(buff, 512) == -1)
             return -1;
 
@@ -60,10 +60,9 @@ static int parse_request_line(struct client *client)
     struct buffer *buff = &client->in;
 
     for (int i = 0; i < buff->count; ++i) {
-        if (i >= 2 && strncmp("\r\n", buff->buff + i - 2, 2) == 0) {
-            int rv = parse_request(client->req, buff->buff, i + 1);
-            if (rv != 0)
-                return rv;
+        if (buff->buff[i] == '\n') {
+            if (parse_request(client->req, buff->buff, i + 1) == -1)
+                return -1;
 
             buff->count -= i + 1;
             memmove(buff->buff, buff->buff + i + 1, buff->count);
@@ -102,15 +101,14 @@ static int read_request(struct client *client)
     if (buffer_read(client->fd, buff) == -1)
         return -1;
 
-    int rv = parse_request_line(client);
-    if (rv == -1)
-        return -1;
-    if (rv == -2) {
+    if (parse_request_line(client) == -1) {
         buff->count = 0;
-        if (response_to_client(client, "Invalid request\r\n") == -1)
+        if (response_to_client(client, "Invalid request\n") == -1)
             return -1;
 
         clear_request(client->req);
+
+        return 0;
     }
 
     if (client->req != UNDEFINED && init_request_data(client) == -1)
@@ -146,8 +144,12 @@ static int send_data(struct client *client)
 
     client->out_data_count += bytes_written;
 
-    if (client->out_data_count == node->data_size)
+    if (client->out_data_count == node->data_size) {
+        client->out_node->ref_count--;
         client->out_node = NULL;
+
+    }
+
 
     return 0;
 }
@@ -169,7 +171,8 @@ int handle_client_in(struct client *client)
         if (read_request(client) == -1)
             return -1;
     }
-    else {
+
+    if (client->req->req != UNDEFINED) {
         if (client->req->data_rec != client->req->data_size && read_request_data(client) == -1)
             return -1;
 
