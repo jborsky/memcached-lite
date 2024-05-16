@@ -15,6 +15,8 @@ static int parse_request_type(struct request *req, char *request)
     if (strcmp(request, "load") == 0)
         req->req = REQ_LOAD;
 
+    if (strcmp(request, "erase") == 0)
+        req->req = REQ_ERASE;
 
     return req->req == UNDEFINED ? -2 : 0;
 }
@@ -53,7 +55,6 @@ static char *token(char *line, int ch, int size)
     return found;
 }
 
-//TODO: make it nicer
 int parse_request(struct request *req, char *start, int size)
 {
     char *whitespace = token(start, ' ', size);
@@ -85,8 +86,7 @@ static int store_request(struct client *client)
     struct request *req = client->req;
 
     if (hash_table_search(&memcached.table, req->key, req->key_size) != NULL)
-        if (response_to_client(client, "Duplicate key\r\n") == -1)
-            return -1;
+        return response_to_client(client, "Duplicate key\r\n");
 
     if (!hash_table_insert(&memcached.table, req->key, req->key_size, req->data, req->data_size))
         return -1;
@@ -105,8 +105,7 @@ static int load_request(struct client *client)
 
     struct node *node = hash_table_search(&memcached.table, req->key, req->key_size);
     if (node == NULL)
-        if (response_to_client(client, "Key not found\r\n") == -1)
-            return -1;
+        return response_to_client(client, "Key not found\r\n");
 
     if (response_to_client(client, "Found ") == -1)
         return -1;
@@ -116,9 +115,25 @@ static int load_request(struct client *client)
     if (response_to_client(client, size) == -1)
         return -1;
 
-    client->out_data.buff = node->data;
-    client->out_data.size = node->data_size;
-    client->out_data.count = 0;
+    client->out_node = node;
+    client->out_node->ref_count++;
+    client->out_data_count = 0;
+
+    return 0;
+}
+
+static int erase_request(struct client *client)
+{
+    struct request *req = client->req;
+
+    struct node *node = hash_table_pop(&memcached.table, req->key, req->key_size);
+    if (node == NULL)
+        return response_to_client(client, "Key not found\r\n");
+
+    if (node->ref_count == 0)
+        node_destroy(node);
+    else
+        llist_move(memcached.node_garbage, node);
 
     return 0;
 }
@@ -134,6 +149,9 @@ int handle_request(struct client *client)
             if (load_request(client) == -1)
                 return -1;
             break;
+        case REQ_ERASE:
+            if (erase_request(client) == -1)
+                return -1;
         default:
             return -1;
     }
@@ -143,10 +161,3 @@ int handle_request(struct client *client)
 
     return 0;
 }
-
-
-
-
-
-
-

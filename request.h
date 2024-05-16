@@ -6,7 +6,8 @@
 enum req_type {
     UNDEFINED,
     REQ_STORE,
-    REQ_LOAD};
+    REQ_LOAD,
+    REQ_ERASE};
 
 struct request
 {
