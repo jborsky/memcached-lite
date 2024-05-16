@@ -1,5 +1,6 @@
 #ifndef SERVER_H
 #define SERVER_H
+#include "client_handler.h"
 
 struct server
 {

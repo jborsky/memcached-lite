@@ -1,6 +1,6 @@
 #ifndef LLIST_H
 #define LLIST_H
-#include "memcached.h"
+#include <stdlib.h>
 #include <stdbool.h>
 
 struct node
