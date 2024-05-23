@@ -8,4 +8,5 @@ This school project aims to implement a lite version of Memcached in C. It's an 
 - Server-side functionality - Accept clients, remove clients, handle their requests
 - Store request
 - Load request
-- ... There is a lot more to come
+- Erase request
+- Test client
