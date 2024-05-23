@@ -76,7 +76,9 @@ int parse_request(struct request *req, char *start, int size)
     if (req->req == REQ_STORE) {
         size -= whitespace - start;
         start = whitespace + 1;
-        token(start, '\n', size);
+        if (token(start, '\n', size) == NULL)
+            return -1;
+
         return parse_data_length(req, start);
     }
 
@@ -88,14 +90,14 @@ static int store_request(struct client *client)
     struct request *req = client->req;
 
     if (hash_table_search(&memcached.table, req->key, req->key_size) != NULL)
-        return response_to_client(client, "Duplicate key\n");
+        return response_to_client(client, 300);
 
     if (!hash_table_insert(&memcached.table, req->key, req->key_size, req->data, req->data_size))
         return -1;
 
     req->data = NULL;
 
-    if (response_to_client(client, "Stored\n") == -1)
+    if (response_to_client(client, 100) == -1)
         return -1;
 
     return 0;
@@ -107,14 +109,12 @@ static int load_request(struct client *client)
 
     struct node *node = hash_table_search(&memcached.table, req->key, req->key_size);
     if (node == NULL)
-        return response_to_client(client, "Key not found\n");
+        return response_to_client(client, 200);
 
-    if (response_to_client(client, "Found ") == -1)
+    if (response_to_client(client, 100) == -1)
         return -1;
 
-    char size[32];
-    sprintf(size, "%zu\n", node->data_size);
-    if (response_to_client(client, size) == -1)
+    if (response_to_client(client, node->data_size) == -1)
         return -1;
 
     client->out_node = node;
@@ -129,9 +129,9 @@ static int erase_request(struct client *client)
     struct request *req = client->req;
 
     if (!hash_table_delete(&memcached.table, req->key, req->key_size))
-        return response_to_client(client, "Key not found\n");
+        return response_to_client(client, 200);
 
-    return response_to_client(client, "Erased\n");
+    return response_to_client(client, 100);
 }
 
 int handle_request(struct client *client)

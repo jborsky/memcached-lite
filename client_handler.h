@@ -23,7 +23,7 @@ struct client
 
 int handle_client_in(struct client *client);
 int handle_client_out(struct client *client);
-int response_to_client(struct client *client, const char *response);
+int response_to_client(struct client *client, int code);
 void free_client(struct client *client);
 
 #endif //CLIENT_HANDLER_H

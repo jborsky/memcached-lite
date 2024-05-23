@@ -20,7 +20,7 @@ static int buffer_realloc(struct buffer *buff, size_t min_space)
     return 0;
 }
 
-static int buffer_append(struct buffer *buff, const char *data, size_t data_size)
+static int buffer_append(struct buffer *buff, const void *data, size_t data_size)
 {
     if (data_size >= buff->size - buff->count) {
         if (buffer_realloc(buff, data_size) == -1)
@@ -103,7 +103,7 @@ static int read_request(struct client *client)
 
     if (parse_request_line(client) == -1) {
         buff->count = 0;
-        if (response_to_client(client, "Invalid request\n") == -1)
+        if (response_to_client(client, 400) == -1)
             return -1;
 
         clear_request(client->req);
@@ -150,13 +150,13 @@ static int send_data(struct client *client)
 
     }
 
-
     return 0;
 }
 
-int response_to_client(struct client *client, const char *response)
+int response_to_client(struct client *client, int code)
 {
-    return (buffer_append(&client->out, response, strlen(response)));
+    int response = htonl(code);
+    return buffer_append(&client->out, &response, 4);
 }
 
 int handle_client_in(struct client *client)
